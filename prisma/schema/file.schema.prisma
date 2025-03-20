@@ -1,0 +1,10 @@
+model File {
+  id         Int      @id @default(autoincrement())
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  key        String
+  url        String
+  fieldname  String
+  mimetype   String
+  is_temp    Boolean? @default(false)
+}
