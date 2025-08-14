@@ -1,6 +1,6 @@
 {
   "name": "nestjs-starter",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A Nestjs + Prisma + PostgreSQL starter backend project. It saves you a lot of time. It has many feature built-in out of the box. For example - authentication, smtp setup, s3 bucket setup etc.",
   "author": "Abhishek Prajapati",
   "private": true,
