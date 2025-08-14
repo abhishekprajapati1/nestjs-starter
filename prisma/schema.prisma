@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===================================================================
+//                        Common Schemas
+// ===================================================================
+
+// blacklisting of tokens
+model Token {
+  id         Int       @id @default(autoincrement())
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+  token      String    @unique
+  iat        Int
+  exp        Int
+
+  @@map("tokens")
+}
+
+// schema for files
+model File {
+  id         Int       @id @default(autoincrement())
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+  key        String
+  fieldname  String
+  type       String?
+  url        String?
+  is_temp    Boolean   @default(true)
+  user       User?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user_id    Int?      @unique
+
+  @@map("files")
+}
+
+//===========================
+// User Schema
+//===========================
+enum UserTypes {
+  superadmin
+  admin
+  interviewer
+  client
+}
+
+model User {
+  id             Int           @id @default(autoincrement())
+  created_at     DateTime?     @default(now())
+  updated_at     DateTime?     @updatedAt
+  email          String        @unique
+  name           String
+  phone_number   String?
+  email_verified DateTime?
+  deleted_at     DateTime?
+  agree_t_and_c  Boolean
+  credentials    Credential?
+  avatar         File?
+  address        Address?
+  type           UserTypes?    @default(interviewer)
+  user_sessions  UserSession[]
+  created_by     User? @relation("UserCreatedBy", fields:[user_id], references: [id], onDelete: SetNull, onUpdate: Cascade ) // how many user this user has created
+  user_id        Int?
+  users          User[] @relation("UserCreatedBy")
+
+  @@map("users")
+}
+
+model Credential {
+  id       Int    @id @default(autoincrement())
+  password String
+  user     User?  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user_id  Int?   @unique
+
+  @@map("credentials")
+}
+
+model UserSession {
+  id          Int      @id @default(autoincrement())
+  device_info Json
+  ip_address  String?
+  last_active DateTime @default(now())
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  user    User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id Int
+
+  auth_token AuthToken?
+
+  @@map("user_sessions")
+}
+
+model AuthToken {
+  id                       Int      @id @default(autoincrement())
+  access_token             String   @unique
+  refresh_token            String   @unique
+  access_token_expires_at  DateTime
+  refresh_token_expires_at DateTime
+  created_at               DateTime @default(now())
+  updated_at               DateTime @updatedAt
+
+  session    UserSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  session_id Int         @unique
+
+  @@map("auth_tokens")
+}
+
+//==========================
+// Address Schema
+//==========================
+model Address {
+  id                Int            @id @default(autoincrement())
+  created_at        DateTime?      @default(now())
+  updated_at        DateTime?      @updatedAt
+  notes             String?
+  address           String
+  country           String?        @default("India")
+  state             String
+  city              String
+  zip_code          String
+  user              User?          @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user_id           Int?           @unique
+
+  @@map("addresses")
+}
