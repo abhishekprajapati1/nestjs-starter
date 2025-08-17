@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Type, Transform } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Type, Transform } from "class-transformer";
 import {
   IsBoolean,
   IsEmail,
@@ -9,10 +9,11 @@ import {
   IsPhoneNumber,
   IsString,
   IsStrongPassword,
+  Length,
   MaxLength,
   MinLength,
   ValidateNested,
-} from 'class-validator';
+} from "class-validator";
 
 export class CredentialDto {
   @IsString()
@@ -21,7 +22,7 @@ export class CredentialDto {
   @MaxLength(15)
   @ApiProperty({
     description:
-      'Choose a strong password that contains alphanumeric characters with special symbols. Password should be minimum 8 characters long.',
+      "Choose a strong password that contains alphanumeric characters with special symbols. Password should be minimum 8 characters long.",
   })
   password: string;
 }
@@ -40,7 +41,7 @@ export class SignupDto {
   name: string;
 
   @IsNumberString()
-  @IsPhoneNumber('IN')
+  @IsPhoneNumber("IN")
   @IsOptional()
   @ApiProperty({ required: false })
   phone_number: string;
@@ -64,4 +65,37 @@ export class ResendEmailVerificationLinkDto {
   @Transform(({ value }: { value: string }) => value.toLowerCase())
   @ApiProperty()
   email: string;
+}
+
+export class VerifyOtpDto {
+  @IsString()
+  @Length(6)
+  @ApiProperty({ description: "OTP sent to eithr email or phone" })
+  otp: string;
+
+  @IsOptional()
+  @IsEmail()
+  @ApiPropertyOptional({ description: "Email if the otp was sent to email." })
+  email?: string;
+
+  @IsOptional()
+  @IsPhoneNumber("IN")
+  @ApiPropertyOptional({
+    description: "Phone number if the otp was sent to phone number.",
+  })
+  phone?: string;
+}
+
+export class ResendOtpDto {
+  @IsOptional()
+  @IsEmail()
+  @ApiPropertyOptional({ description: "Email if the otp was sent to email." })
+  email?: string;
+
+  @IsOptional()
+  @IsPhoneNumber("IN")
+  @ApiPropertyOptional({
+    description: "Phone number if the otp was sent to phone number.",
+  })
+  phone?: string;
 }

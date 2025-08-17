@@ -13,17 +13,22 @@ import {
   Query,
   Res,
   UnauthorizedException,
-} from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { ResendEmailVerificationLinkDto, SignupDto } from './dto/signup.dto';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { LoginDto } from './dto/login.dto';
-import { Response } from 'express';
-import { PublicApi } from './decorators/public.decorator';
-import { MailService } from '../mail/mail.service';
-import { TokenService } from '../token/token.service';
-import { TokenDto } from '../token/dto/token.dto';
-import { RefreshTokenDto } from './dto/refresh.dto';
+} from "@nestjs/common";
+import { AuthService } from "./auth.service";
+import {
+  ResendEmailVerificationLinkDto,
+  ResendOtpDto,
+  SignupDto,
+  VerifyOtpDto,
+} from "./dto/signup.dto";
+import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { LoginDto } from "./dto/login.dto";
+import { Response } from "express";
+import { PublicApi } from "./decorators/public.decorator";
+import { MailService } from "../mail/mail.service";
+import { TokenService } from "../token/token.service";
+import { TokenDto } from "../token/dto/token.dto";
+import { RefreshTokenDto } from "./dto/refresh.dto";
 import {
   ERR_TYPES,
   MAX_AGES,
@@ -31,22 +36,24 @@ import {
   TOKEN_DATA,
   TOKEN_EXPIRATIONS,
   TokensType,
-} from '../../lib/constants';
-import { ITenant, Tenant } from './decorators/tenant.decorator';
-import { Tokens } from '../token/decorators/tokens.decorator';
-import { PrismaService } from '../prisma/prisma.service';
-import { ForgotPasswordDto, ResetPasswordDto } from './dto/password.dto';
-import { UserTypes } from '@prisma/client';
-import { DatabaseId } from 'lib/types';
-import { UtilService } from 'src/util/util.service';
+} from "../../lib/constants";
+import { ITenant, Tenant } from "./decorators/tenant.decorator";
+import { Tokens } from "../token/decorators/tokens.decorator";
+import { ApiResponse, PrismaService } from "../prisma/prisma.service";
+import { ForgotPasswordDto, ResetPasswordDto } from "./dto/password.dto";
+import { UserTypes } from "@prisma/client";
+import { DatabaseId } from "lib/types";
+import { UtilService } from "src/util/util.service";
+import { OtpService } from "src/otp/otp.service";
 
-@Controller('auth')
-@ApiTags('Authentication')
+@Controller("auth")
+@ApiTags("Authentication")
 export class AuthController {
   private logger: Logger;
   constructor(
     private readonly authService: AuthService,
     private readonly mailService: MailService,
+    private readonly otpService: OtpService,
     private readonly tokenService: TokenService,
     private readonly prisma: PrismaService,
     private readonly util: UtilService,
@@ -55,33 +62,79 @@ export class AuthController {
   }
 
   @PublicApi()
-  @Post('signup')
+  @Post("signup")
   @ApiOperation({
-    description: 'Creates a new user account.',
+    description: "Creates a new user account.",
   })
   async signup(@Body() signupDto: SignupDto) {
     const exist = await this.authService.findUserByEmail(signupDto.email);
     if (exist)
       throw new BadRequestException(
-        'An account already exists with same email. Please login.',
+        "An account already exists with same email. Please login.",
       );
 
     const created = await this.authService.createUser(signupDto);
-    if (created)
-      await this.authService.sendEmailAfterSignup({
+    if (created) {
+      await this.otpService.generateOtp({
         email: created.email,
-        id: created.id,
+        user_id: created.id,
       });
+    }
 
     return {
       success: true,
       message:
-        'Registration successful. Verify your email by clicking the link sent to your email address.',
+        "Registration successful. Verify your email by clicking the link sent to your email address.",
     };
   }
 
   @PublicApi()
-  @Post('verfiy-email')
+  @Post("verify-otp")
+  @ApiOperation({ description: "Use this api to verify otps" })
+  async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto): Promise<ApiResponse> {
+    const verified = await this.otpService.verifyOtp({
+      digits: verifyOtpDto.otp,
+      email: verifyOtpDto.email,
+      phone: verifyOtpDto.phone,
+    });
+    if (!verified) {
+      throw new BadRequestException("OTP verification was failed.");
+    }
+
+    await this.prisma.user.update({
+      where: { email: verifyOtpDto.email },
+      data: {
+        email_verified: new Date(),
+      },
+    });
+
+    return { success: true, message: "OTP verified successfully." };
+  }
+
+  @PublicApi()
+  @Post("resend-otp")
+  @ApiOperation({ description: "Use this api to resend the otp." })
+  async resendOtp(@Body() resendOtpDto: ResendOtpDto): Promise<ApiResponse> {
+    if (!resendOtpDto.email && !resendOtpDto.phone) {
+      throw new BadRequestException("Either email or phone is required.");
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { email: resendOtpDto.email },
+    });
+    if (!user) {
+      throw new BadRequestException("User couldn't be found with the email");
+    }
+
+    await this.otpService.generateOtp({
+      email: resendOtpDto.email,
+      phone: resendOtpDto.phone,
+    });
+
+    return { success: true, message: "OTP sent sucessfully." };
+  }
+
+  @PublicApi()
+  @Post("verfiy-email")
   @ApiOperation({
     description: `This API endpoint is used to verify a user's email by providing the token sent to their registered email ID during the signup process. Successful verification is required for users to proceed with the login process.`,
   })
@@ -94,7 +147,7 @@ export class AuthController {
       throw new UnauthorizedException({
         success: false,
         message:
-          'Verification link is expired. Please request another verification link.',
+          "Verification link is expired. Please request another verification link.",
         type: ERR_TYPES.token_expired,
       });
 
@@ -102,25 +155,25 @@ export class AuthController {
     if (!user)
       throw new NotFoundException({
         success: false,
-        message: 'Verification failed no user exist with this email address.',
+        message: "Verification failed no user exist with this email address.",
         type: ERR_TYPES.token_invalid,
       });
 
     if (user.email_verified) {
       throw new BadRequestException({
         success: true,
-        message: 'Email is already verified. You can close this page.',
+        message: "Email is already verified. You can close this page.",
         type: ERR_TYPES.already_verified,
       });
     }
 
     await this.authService.verifyEmail(user.email, user.id);
 
-    return { success: true, message: 'Email successfully verified.' };
+    return { success: true, message: "Email successfully verified." };
   }
 
   @PublicApi()
-  @Post('resend-verification-link')
+  @Post("resend-verification-link")
   @ApiOperation({
     description: `Resends the email verification link to the user to the given email address.`,
   })
@@ -133,21 +186,21 @@ export class AuthController {
     if (!user)
       throw new BadRequestException({
         success: false,
-        message: 'The user does not exist.',
+        message: "The user does not exist.",
       });
     if (user.email_verified)
-      throw new BadRequestException('The eamil is already verified.');
+      throw new BadRequestException("The eamil is already verified.");
     await this.authService.sendEmailAfterSignup({
       email: user.email,
       id: user.id,
       resending: true,
     });
 
-    return { success: true, message: 'Verification link sent to your email.' };
+    return { success: true, message: "Verification link sent to your email." };
   }
 
   @PublicApi()
-  @Post('signin')
+  @Post("signin")
   async signin(@Body() loginDto: LoginDto, @Res() response: Response) {
     const user = await this.authService.getValidUser(loginDto);
 
@@ -166,7 +219,7 @@ export class AuthController {
     // providing auth token
     const auth_token = await this.tokenService.generateToken(tokenPayload, {
       expiresIn: loginDto.remember_me
-        ? '15d'
+        ? "15d"
         : TOKEN_EXPIRATIONS[TOKENS.auth_token],
     });
 
@@ -203,32 +256,32 @@ export class AuthController {
         },
         refresh_token: refreshToken,
       },
-      message: 'Logged in successfully.',
+      message: "Logged in successfully.",
     });
   }
 
-  @Get('/details')
+  @Get("/details")
   async getLoggedUserDetails(@Tenant() tenant: ITenant) {
     const details = await this.authService.findUserByEmail(tenant.email);
     return { success: true, data: details };
   }
 
   @PublicApi()
-  @Post('/forgot')
+  @Post("/forgot")
   async sendForgotEmail(@Body() forgotDto: ForgotPasswordDto) {
     const user = await this.authService.findUserByEmail(forgotDto.email);
 
     if (!user) {
       throw new NotFoundException({
         success: false,
-        message: 'User does not exists.',
+        message: "User does not exists.",
       });
     }
 
     const token = await this.tokenService.generateToken(
       { id: user.id, type: user.type, email: user.email },
       {
-        expiresIn: '48h',
+        expiresIn: "48h",
       },
     );
     const htmlBody = `
@@ -240,17 +293,17 @@ export class AuthController {
       await this.mailService.sendEmail({
         to: forgotDto.email,
         body: htmlBody,
-        closure: 'Thanks and regards',
+        closure: "Thanks and regards",
         ctaLabel: `Reset Password`,
         href,
         subject: `Reset Password`,
-        template_name: 'primary',
+        template_name: "primary",
       });
     } catch (error) {
       throw new InternalServerErrorException({
         success: false,
         message:
-          (error as { message?: string })?.message || 'Something went wrong.',
+          (error as { message?: string })?.message || "Something went wrong.",
       });
     }
 
@@ -262,7 +315,7 @@ export class AuthController {
   }
 
   @PublicApi()
-  @Put('/reset-password')
+  @Put("/reset-password")
   async resetPassword(
     @Body() resetPasswordDto: ResetPasswordDto,
     @Query() tokenDto: TokenDto,
@@ -276,7 +329,7 @@ export class AuthController {
       throw new BadRequestException({
         success: false,
         message:
-          'The link has been used kindly request again for resetting your password.',
+          "The link has been used kindly request again for resetting your password.",
       });
 
     // extract data from token
@@ -291,7 +344,7 @@ export class AuthController {
       throw new UnauthorizedException({
         success: false,
         message:
-          'Reset password link is expired. Please request another reset link.',
+          "Reset password link is expired. Please request another reset link.",
       });
 
     const { id, iat, exp } = payload;
@@ -300,7 +353,7 @@ export class AuthController {
     if (!user) {
       throw new NotFoundException({
         success: false,
-        message: 'Owner does not exist.',
+        message: "Owner does not exist.",
       });
     }
 
@@ -321,10 +374,10 @@ export class AuthController {
       { timeout: 20000, maxWait: 5000 },
     );
 
-    return { success: true, message: 'Password reset successfully.' };
+    return { success: true, message: "Password reset successfully." };
   }
 
-  @Get('refresh-token')
+  @Get("refresh-token")
   async refreshToken(
     @Query() refreshTokenDto: RefreshTokenDto,
     @Tokens() tokens: TokensType,
@@ -334,7 +387,7 @@ export class AuthController {
     if (!tokens[TOKENS.refresh_token])
       throw new UnauthorizedException({
         success: false,
-        message: 'Refresh token not found',
+        message: "Refresh token not found",
       });
     const refreshPayload = await this.tokenService.getRefreshPayload(
       tokens[TOKENS.refresh_token] as string,
@@ -374,9 +427,9 @@ export class AuthController {
     });
   }
 
-  @Delete('logout')
+  @Delete("logout")
   @ApiOperation({
-    description: 'Used to delete the session. Only works with web browsers.',
+    description: "Used to delete the session. Only works with web browsers.",
   })
   async logout(@Tokens() tokens: TokensType, @Res() response: Response) {
     for (const token in tokens) {
@@ -395,13 +448,13 @@ export class AuthController {
         }
       } catch (error) {
         this.logger.error(
-          'Error while blacklisting tokens ' + error,
-          'AuthController',
+          "Error while blacklisting tokens " + error,
+          "AuthController",
         );
       }
     }
     return response
       .status(HttpStatus.OK)
-      .json({ success: true, message: 'Successfully logged out.' });
+      .json({ success: true, message: "Successfully logged out." });
   }
 }

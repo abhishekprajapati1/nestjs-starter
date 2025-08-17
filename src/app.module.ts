@@ -14,6 +14,7 @@ import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { AuthGuard } from "./auth/auth.guard";
 import { RolesGuard } from "./auth/roles.guard";
 import { PrismaInterceptor } from "./prisma/prisma.interceptor";
+import { OtpModule } from './otp/otp.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PrismaInterceptor } from "./prisma/prisma.interceptor";
     MailModule,
     TokenModule,
     BucketModule,
+    OtpModule,
   ],
   controllers: [AppController],
   providers: [

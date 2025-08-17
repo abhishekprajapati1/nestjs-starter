@@ -56,6 +56,9 @@ importers:
       nodemailer:
         specifier: ^7.0.5
         version: 7.0.5
+      otp-generator:
+        specifier: ^4.0.1
+        version: 4.0.1
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -102,6 +105,9 @@ importers:
       '@types/nodemailer':
         specifier: ^6.4.17
         version: 6.4.17
+      '@types/otp-generator':
+        specifier: ^4.0.2
+        version: 4.0.2
       '@types/supertest':
         specifier: ^6.0.2
         version: 6.0.3
@@ -1507,6 +1513,9 @@ packages:
 
   '@types/nodemailer@6.4.17':
     resolution: {integrity: sha512-I9CCaIp6DTldEg7vyUTZi8+9Vo0hi1/T8gv3C89yk1rSAAzoKQ8H8ki/jBYJSFoH/BisgLP8tkZMlQ91CIquww==}
+
+  '@types/otp-generator@4.0.2':
+    resolution: {integrity: sha512-9+qqWzuFb332hXPbLgjUyOXlbcaTQkmkmqQjTduvNuOmPV5fW+iLv70JsVEhdUy0DWi4kY34++HDCaWl6N0AYg==}
 
   '@types/qs@6.14.0':
     resolution: {integrity: sha512-eOunJqu0K1923aExK6y8p6fsihYEn/BYuQ4g0CxAAgFc4b/ZLN4CrsRZ55srTdqoiLzU2B2evC+apEIxprEzkQ==}
@@ -3211,6 +3220,10 @@ packages:
   os-tmpdir@1.0.2:
     resolution: {integrity: sha512-D2FR03Vir7FIu45XBY20mTb+/ZSWB00sjU9jdQXt83gDrI4Ztz5Fs7/yy74g2N5SVQY4xY1qDr4rNddwYRVX0g==}
     engines: {node: '>=0.10.0'}
+
+  otp-generator@4.0.1:
+    resolution: {integrity: sha512-2TJ52vUftA0+J3eque4wwVtpaL4/NdIXDL0gFWFJFVUAZwAN7+9tltMhL7GCNYaHJtuONoier8Hayyj4HLbSag==}
+    engines: {node: '>=14.10.0'}
 
   p-cancelable@3.0.0:
     resolution: {integrity: sha512-mlVgR3PGuzlo0MmTdk4cXqXWlwQDLnONTAg6sm62XkMJEiRxN3GL3SffkYvqwonbkJBcrI7Uvv5Zh9yjvn2iUw==}
@@ -5901,6 +5914,8 @@ snapshots:
     dependencies:
       '@types/node': 22.16.5
 
+  '@types/otp-generator@4.0.2': {}
+
   '@types/qs@6.14.0': {}
 
   '@types/range-parser@1.2.7': {}
@@ -7898,6 +7913,8 @@ snapshots:
       wcwidth: 1.0.1
 
   os-tmpdir@1.0.2: {}
+
+  otp-generator@4.0.1: {}
 
   p-cancelable@3.0.0: {}
 

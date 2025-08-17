@@ -30,7 +30,7 @@ export class UtilService {
   ): void {
     response.cookie(name || TOKENS.auth_token, data, {
       ...(this.configService.get<string>('DEV_ENVIRONMENT') !== 'true' && {
-        domain: '.rakritech.com',
+        domain: '.coparent.com',
       }),
       maxAge: age || MAX_AGES[TOKENS.auth_token],
       httpOnly: true,
@@ -42,7 +42,7 @@ export class UtilService {
   removeCookie(response: Response, name: string): void {
     response.clearCookie(name || TOKENS.auth_token, {
       ...(this.configService.get<string>('DEV_ENVIRONMENT') !== 'true' && {
-        domain: '.rakritech.com',
+        domain: '.coparent.com',
       }),
     });
   }

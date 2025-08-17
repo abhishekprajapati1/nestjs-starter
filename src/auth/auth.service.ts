@@ -1,15 +1,15 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from "@nestjs/common";
 import {
   IWithTransactionClient,
   PrismaService,
-} from '../prisma/prisma.service';
-import { LoginDto } from './dto/login.dto';
-import { SignupDto } from './dto/signup.dto';
-import { TokenService } from '../token/token.service';
-import { MailService } from '../mail/mail.service';
-import { ResetPasswordDto } from './dto/password.dto';
-import { DatabaseId } from 'lib/types';
-import { UtilService } from 'src/util/util.service';
+} from "../prisma/prisma.service";
+import { LoginDto } from "./dto/login.dto";
+import { SignupDto } from "./dto/signup.dto";
+import { TokenService } from "../token/token.service";
+import { MailService } from "../mail/mail.service";
+import { ResetPasswordDto } from "./dto/password.dto";
+import { DatabaseId } from "lib/types";
+import { UtilService } from "src/util/util.service";
 
 interface IResetPassword extends IWithTransactionClient {
   data: ResetPasswordDto;
@@ -66,25 +66,25 @@ export class AuthService {
   async sendEmailAfterSignup({ email, id, resending }: ISendEmailAfterSignup) {
     const token = await this.tokenService.generateToken(
       { id, email: email },
-      { expiresIn: '1d' },
+      { expiresIn: "1d" },
     );
     const href = `verify-email?token=${token}&email=${email}`;
     const bodyHTML = resending
       ? `
-        Greetings from RakriTech. We are glad that you chose us. This email is sent to you by request; ignore this email if you didn't requested.
+        Greetings from CoParent. We are glad that you chose us. This email is sent to you by request; ignore this email if you didn't requested.
         `
       : `
-                Greetings from RakriTech. We are glad that you chose us. Please verify your account to access the website.
+                Greetings from CoParent. We are glad that you chose us. Please verify your account to access the website.
         `;
 
     await this.mailService.sendEmail({
       to: email,
       body: bodyHTML,
-      closure: 'Thanks and regards',
-      ctaLabel: 'Click to verify',
+      closure: "Thanks and regards",
+      ctaLabel: "Click to verify",
       href: href,
-      subject: 'Account Email Verification',
-      template_name: 'primary',
+      subject: "Account Email Verification",
+      template_name: "primary",
     });
   }
 
@@ -102,31 +102,31 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new BadRequestException('Invalid credentials');
+      throw new BadRequestException("Invalid credentials");
     }
 
     if (user.deleted_at) {
       throw new BadRequestException({
         success: false,
-        message: 'Your account has been blocked by the administrator.',
+        message: "Your account has been blocked by the administrator.",
       });
     }
 
-    if (user.type !== 'admin' && !user.email_verified) {
+    if (user.type !== "admin" && !user.email_verified) {
       throw new BadRequestException({
         success: false,
         message:
-          'Please verify your email by following the link sent to you at your email address.',
+          "Please verify your email by following the link sent to you at your email address.",
       });
     }
 
     const passwordCorrect = await this.util.compareString(
       loginDto.password,
-      user.credentials?.password || '',
+      user.credentials?.password || "",
     );
 
     if (!passwordCorrect) {
-      throw new BadRequestException('Invalid credentials');
+      throw new BadRequestException("Invalid credentials");
     }
 
     // @ts-expect-error No need to pass credentials to the client
