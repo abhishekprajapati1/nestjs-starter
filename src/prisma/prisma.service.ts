@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaClient, Prisma } from '@prisma/client';
+import { UploadedFile } from 'src/storage/storage.types';
 
 export interface IWithTransactionClient {
   prisma?: Prisma.TransactionClient;
@@ -49,5 +50,14 @@ export class PrismaService extends PrismaClient {
     };
 
     return filter as T;
+  }
+
+  getFilePayload(file: UploadedFile): Prisma.FileCreateInput {
+    return {
+      fieldname: file.fieldname,
+      key: file.key,
+      type: file.mimetype,
+      url: file.url,
+    };
   }
 }

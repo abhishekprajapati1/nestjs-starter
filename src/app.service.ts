@@ -2,9 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as os from 'os';
 import { PrismaService } from './prisma/prisma.service';
-import { BucketService } from './bucket/bucket.service';
 
-interface HealthStatus {
+export interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';
   message: string;
   details?: Record<string, any>;
@@ -22,7 +21,6 @@ export class AppService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-    private readonly bucket: BucketService,
   ) {}
 
   serverHealth(): HealthStatus {
@@ -141,8 +139,6 @@ export class AppService {
         bucket: this.configService.get<string>('AWS_BUCKET_NAME'),
         region: this.configService.get<string>('AWS_REGION'),
       };
-
-      await this.bucket.checkBucketConnectivity();
 
       const isConfigured = !!storageConfig.bucket && !!storageConfig.region;
 

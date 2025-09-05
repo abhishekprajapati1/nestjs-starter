@@ -8,13 +8,13 @@ import { UserModule } from "./user/user.module";
 import { AuthModule } from "./auth/auth.module";
 import { MailModule } from "./mail/mail.module";
 import { TokenModule } from "./token/token.module";
-import { BucketModule } from "./bucket/bucket.module";
 import { ScheduleModule } from "@nestjs/schedule";
 import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { AuthGuard } from "./auth/auth.guard";
 import { RolesGuard } from "./auth/roles.guard";
 import { PrismaInterceptor } from "./prisma/prisma.interceptor";
 import { OtpModule } from './otp/otp.module';
+import { StorageModule } from "./storage/storage.module";
 
 @Module({
   imports: [
@@ -30,8 +30,8 @@ import { OtpModule } from './otp/otp.module';
     AuthModule,
     MailModule,
     TokenModule,
-    BucketModule,
     OtpModule,
+    StorageModule
   ],
   controllers: [AppController],
   providers: [
