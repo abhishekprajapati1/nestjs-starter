@@ -118,7 +118,6 @@ model AuthToken {
 
   @@map("auth_tokens")
 }
-
 model Otp {
   id         Int       @id @default(autoincrement())
   created_at DateTime  @default(now())
@@ -127,6 +126,7 @@ model Otp {
   email      String?
   phone      String?
   expires_at DateTime?
+  context    String?   @default("email_verification")
   is_used    Boolean   @default(false)
   user       User?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   user_id    Int?

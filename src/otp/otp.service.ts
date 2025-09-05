@@ -12,7 +12,7 @@ export class OtpService {
   ) {}
 
   // Generate & save OTP
-  async generateOtp({ email, phone, user_id }: IGenerateOtp) {
+  async generateOtp({ email, phone, user_id, context }: IGenerateOtp) {
     if (!email && !phone) {
       throw new BadRequestException("Either email or phone is required");
     }
@@ -40,33 +40,28 @@ export class OtpService {
             },
           },
         }),
+        ...(context && {
+          context,
+        }),
       },
     });
 
-    // TODO: send email/SMS with otp.digits
-    const bodyHTML = `
-      Greetings from CoParent. Here is is your one time password - ${otp.digits}; ignore this email if you didn't requested. The code is only valid for next 10 minutes
-      `;
-
-    if (email) {
-      await this.mailService.sendEmail({
-        to: email,
-        body: bodyHTML,
-        closure: "Thanks and regards",
-        subject: "Account Email Verification",
-        template_name: "plain",
-      });
-    }
-    return { id: otp.id, expiresAt: otp.expires_at };
+    return otp;
   }
 
   // Verify OTP
-  async verifyOtp({ digits, email, phone }: IVerifyOtp) {
+  async verifyOtp({
+    digits,
+    email,
+    phone,
+    context = "email_verification",
+  }: IVerifyOtp) {
     const otp = await this.prisma.otp.findFirst({
       where: {
         digits,
         is_used: false,
         OR: [{ email }, { phone }],
+        context,
       },
       orderBy: { created_at: "desc" },
     });

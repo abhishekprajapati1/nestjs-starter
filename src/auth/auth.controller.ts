@@ -75,16 +75,31 @@ export class AuthController {
 
     const created = await this.authService.createUser(signupDto);
     if (created) {
-      await this.otpService.generateOtp({
+      const otp = await this.otpService.generateOtp({
         email: created.email,
         user_id: created.id,
       });
+
+      // TODO: send email/SMS with otp.digits
+      const bodyHTML = `
+    Greetings from Trackor. Here is is your one time password - ${otp.digits}; ignore this email if you didn't requested. The code is only valid for next 10 minutes
+    `;
+
+      if (created.email) {
+        await this.mailService.sendEmail({
+          to: created.email,
+          body: bodyHTML,
+          closure: "Thanks and regards",
+          subject: "Account Email Verification",
+          template_name: "plain",
+        });
+      }
     }
 
     return {
       success: true,
       message:
-        "Registration successful. Verify your email by clicking the link sent to your email address.",
+        "An OTP is sent to your email address.",
     };
   }
 
@@ -125,10 +140,25 @@ export class AuthController {
       throw new BadRequestException("User couldn't be found with the email");
     }
 
-    await this.otpService.generateOtp({
+    const otp = await this.otpService.generateOtp({
       email: resendOtpDto.email,
       phone: resendOtpDto.phone,
+      context: "email_verification",
     });
+
+    const bodyHTML = `
+      Greetings from Trackor. Here is is your one time password - ${otp.digits}; ignore this email if you didn't requested. The code is only valid for next 10 minutes
+      `;
+
+    if (user.email) {
+      await this.mailService.sendEmail({
+        to: user.email,
+        body: bodyHTML,
+        closure: "Thanks and regards",
+        subject: "Account Email Verification",
+        template_name: "plain",
+      });
+    }
 
     return { success: true, message: "OTP sent sucessfully." };
   }
